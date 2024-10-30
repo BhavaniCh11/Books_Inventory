@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <title>Book Inventory System</title>
+</head>
+<body>
+    <header>
+        <h1>Book Inventory Management</h1>
+    </header>
+
+    <main>
+        <section>
+            <h2>Add New Book</h2>
+            <form id="addBookForm">
+                <input type="text" name="title" placeholder="Title" required>
+                <input type="text" name="author" placeholder="Author" required>
+                <input type="text" name="genre" placeholder="Genre">
+                <input type="date" name="publication_date" required>
+                <input type="text" name="isbn" placeholder="ISBN" required>
+                <button type="submit">Add Book</button>
+            </form>
+        </section>
+
+        <section>
+            <h2>Filter Books</h2>
+            <form id="filterForm">
+                <input type="text" name="title" placeholder="Title">
+                <input type="text" name="author" placeholder="Author">
+                <input type="text" name="genre" placeholder="Genre">
+                <button type="submit">Filter Books</button>
+            </form>
+        </section>
+
+        <section>
+            <h2>Book List</h2>
+            <div id="filteredBookList"></div>
+            <div id="allBookList"></div>
+        </section>
+
+        <section>
+            <h2>Export Data</h2>
+            <div id="exportLinks">
+                <a class="export-link" href="/export_books?format=csv">Export as CSV</a>
+                <a class="export-link" href="/export_books?format=json">Export as JSON</a>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Function to display books in a table format
+        function generateBookTable(books) {
+            if (books.length === 0) {
+                return '<p>No books found.</p>';
+            }
+
+            let table = `
+                <table border="1">
+                    <thead>
+                        <tr>
+                            <th>EntryID</th>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Genre</th>
+                            <th>Publication Date</th>
+                            <th>ISBN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            books.forEach(book => {
+                table += `
+                    <tr>
+                        <td>${book.EntryID}</td>
+                        <td>${book.Title}</td>
+                        <td>${book.Author}</td>
+                        <td>${book.Genre}</td>
+                        <td>${book.PublicationDate}</td>
+                        <td>${book.ISBN}</td>
+                    </tr>
+                `;
+            });
+
+            table += '</tbody></table>';
+            return table;
+        }
+
+        // Add Book Event Listener
+        document.getElementById('addBookForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+
+            fetch('/add_book', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                this.reset();
+                fetchAllBooks(); // Refresh all books list
+            });
+        });
+
+        // Filter Books Event Listener
+        document.getElementById('filterForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const params = new URLSearchParams();
+
+            for (const [key, value] of formData.entries()) {
+                if (value) params.append(key, value);
+            }
+
+            fetch(`/filter_books?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    const filteredBookListDiv = document.getElementById('filteredBookList');
+                    filteredBookListDiv.innerHTML = '<h3>Filtered Books:</h3>' + generateBookTable(data);
+                });
+        });
+
+        // Fetch All Books and Display in Table
+        function fetchAllBooks() {
+            fetch('/get_all_books')
+                .then(response => response.json())
+                .then(data => {
+                    const allBookListDiv = document.getElementById('allBookList');
+                    allBookListDiv.innerHTML = '<h3>All Books:</h3>' + generateBookTable(data);
+                });
+        }
+
+        // Load All Books on Page Load
+        window.onload = fetchAllBooks;
+    </script>
+</body>
+</html>
